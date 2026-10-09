@@ -71,12 +71,23 @@ struct VMContextMenuModifier: ViewModifier {
                 }.help("Run the VM in the foreground.")
                 
                 #if os(macOS) && arch(arm64)
-                if #available(macOS 13, *), let appleConfig = vm.config as? UTMAppleConfiguration, appleConfig.system.boot.operatingSystem == .macOS {
-                    Button {
-                        data.run(vm: vm, options: .bootRecovery)
-                    } label: {
-                        Label("Run Recovery", systemImage: "lifepreserver.fill")
-                    }.help("Boot into recovery mode.")
+                Button {
+                    data.run(vm: vm, options: .bootRecovery)
+                } label: {
+                    Label("Run Recovery", systemImage: "lifepreserver.fill")
+                }.help("Boot into recovery mode.")
+                #endif
+                
+                #if os(macOS) && arch(arm64)
+                if let appleConfig = vm.config as? UTMAppleConfiguration {
+                    if jb_has_restricted_device_entitlement() {
+                        Button {
+                            appleConfig.system.boot.debugServer = true
+                            data.run(vm: vm)
+                        } label: {
+                            Label("Run with Debug Server", systemImage: "play.fill")
+                        }.help("Run with GDB debug server on port 8000.")
+                    }
                 }
                 #endif
                 

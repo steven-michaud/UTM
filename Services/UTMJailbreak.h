@@ -20,6 +20,7 @@
 #include <stdbool.h>
 
 bool jb_has_jit_entitlement(void);
+bool jb_has_restricted_device_entitlement(void);
 bool jb_has_usb_entitlement(void);
 bool jb_has_hypervisor(void);
 bool jb_has_container(void);

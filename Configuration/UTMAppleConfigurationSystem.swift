@@ -139,6 +139,15 @@ extension UTMAppleConfigurationSystem {
            let platform = genericPlatform.vzGenericPlatform() {
             vzconfig.platform = platform
         }
+        #if arch(arm64)
+        if #available(macOS 12, *) {
+            if (boot.debugServer) {
+                let debugStubConfig = _VZGDBDebugStubConfiguration()
+                debugStubConfig.port = 8000
+                vzconfig._debugStub = debugStubConfig
+            }
+        }
+        #endif
     }
     
     private static func sysctlIntRead(_ name: String) -> UInt64 {

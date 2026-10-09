@@ -50,6 +50,7 @@
 //#endif
 #include "VMKeyboardView.h"
 #elif TARGET_OS_OSX
+#include <Virtualization/Virtualization.h>
 typedef uint32_t CGSConnectionID;
 typedef CF_ENUM(uint32_t, CGSGlobalHotKeyOperatingMode) {
     kCGSGlobalHotKeyOperatingModeEnable = 0,
@@ -57,4 +58,36 @@ typedef CF_ENUM(uint32_t, CGSGlobalHotKeyOperatingMode) {
 };
 extern CGSConnectionID CGSMainConnectionID(void);
 extern CGError CGSSetGlobalHotKeyOperatingMode(CGSConnectionID connection, CGSGlobalHotKeyOperatingMode mode);
+#ifdef __arm64__
+VZ_EXPORT API_AVAILABLE(macos(12.0))
+@interface NSObject (_VZVirtualMachineStartOptions)
+@property BOOL bootMacOSRecovery;
+@property BOOL forceDFU;
+@property BOOL stopInIBootStage1;
+@property BOOL stopInIBootStage2;
+@end
+VZ_EXPORT API_AVAILABLE(macos(12.0))
+@interface VZVirtualMachine()
+- (void)_startWithOptions:(NSObject * _Nonnull)options completionHandler:(void (^ _Nonnull)(NSError * _Nullable errorOrNil))completionHandler;
+@end
+VZ_EXPORT API_AVAILABLE(macos(12.0))
+@interface _VZGDBDebugStubConfiguration : NSObject <NSCopying>
+@property short port;
+- (NSObject * _Nonnull)makeDebugStubForVirtualMachine:(NSObject * _Nullable)unused;
+@end
+VZ_EXPORT API_AVAILABLE(macos(12.0))
+@interface VZVirtualMachineConfiguration()
+@property (atomic, setter=_setDebugStub:) id _Nullable _debugStub;
+@end
+VZ_EXPORT API_AVAILABLE(macos(13.0))
+@interface VZMacOSVirtualMachineStartOptions (VZPrivate)
+@property (atomic, setter=_setForceDFU:) BOOL _forceDFU;
+@property (atomic, setter=_setStopInIBootStage1:) BOOL _stopInIBootStage1;
+@property (atomic, setter=_setStopInIBootStage2:) BOOL _stopInIBootStage2;
+@end
+VZ_EXPORT API_AVAILABLE(macos(12.0))
+@interface _VZPL011SerialPortConfiguration : VZSerialPortConfiguration
+- (instancetype _Nonnull)init;
+@end
+#endif
 #endif

@@ -13,6 +13,7 @@ if [ $# -lt 3 ]; then
 	echo "          unsigned (unsigned DMG)"
 	echo "          developer-id (signed DMG)"
 	echo "          app-store (Mac App Store package)"
+	echo "          unrestricted (need to use amfidont or set amfi_get_out_of_my_way=1 boot-arg)"
 	echo "  TEAM_ID is required if not unsigned"
 	echo "  PROFILE_NAME is required if not unsigned, can be the name or UUID"
 	echo "  HELPER_PROFILE_NAME is required if not unsigned, can be the name or UUID"
@@ -75,6 +76,12 @@ if [ "$MODE" == "unsigned" ]; then
 	cp "$BASEDIR/../QEMURenderServer/QEMURenderServer-unsigned.entitlements" "$RENDERER_ENTITLEMENTS"
 	cp "$BASEDIR/../QEMUHelper/QEMUHelper-unsigned.entitlements" "$HELPER_ENTITLEMENTS"
 	cp "$BASEDIR/../utmctl/utmctl-unsigned.entitlements" "$CLI_ENTITLEMENTS"
+elif [ "$MODE" == "unrestricted" ]; then
+	cp "$BASEDIR/../Platform/macOS/macOS-unrestricted.entitlements" "$UTM_ENTITLEMENTS"
+	cp "$BASEDIR/../QEMULauncher/QEMULauncher.entitlements" "$LAUNCHER_ENTITLEMENTS"
+	cp "$BASEDIR/../QEMURenderServer/QEMURenderServer.entitlements" "$RENDERER_ENTITLEMENTS"
+	cp "$BASEDIR/../QEMUHelper/QEMUHelper.entitlements" "$HELPER_ENTITLEMENTS"
+	cp "$BASEDIR/../utmctl/utmctl.entitlements" "$CLI_ENTITLEMENTS"
 else
 	cp "$BASEDIR/../Platform/macOS/macOS.entitlements" "$UTM_ENTITLEMENTS"
 	cp "$BASEDIR/../QEMULauncher/QEMULauncher.entitlements" "$LAUNCHER_ENTITLEMENTS"
@@ -107,7 +114,7 @@ codesign --force --sign - --entitlements "$CLI_ENTITLEMENTS" --timestamp=none --
 codesign --force --sign - --entitlements "$UTM_ENTITLEMENTS" --timestamp=none --options runtime "$INPUT_COPY/Products/Applications/UTM.app/Contents/MacOS/UTM"
 
 # re-sign with certificate and profile if requested
-if [ "$MODE" == "unsigned" ]; then
+if [ "$MODE" == "unsigned" ] || [ "$MODE" == "unrestricted" ]; then
 	mv "$INPUT_COPY/Products/Applications" "$SIGNED"
 else
 	xcodebuild -exportArchive -exportOptionsPlist "$OPTIONS" -archivePath "$INPUT_COPY" -exportPath "$SIGNED"
@@ -125,15 +132,15 @@ if [ "$MODE" == "app-store" ]; then
 	cp "$SIGNED/UTM.pkg" "$OUTPUT/UTM.pkg"
 else
 	rm -f "$OUTPUT/UTM.dmg"
-	if command -v appdmg >/dev/null 2>&1; then
-		RESOURCES="/tmp/resources.$$"
-		cp -r "$BASEDIR/resources" "$RESOURCES"
-		sed -i '' "s/\/tmp\/signed\/UTM.app/\/tmp\/signed.$$\/UTM.app/g" "$RESOURCES/appdmg.json"
-		appdmg "$RESOURCES/appdmg.json" "$OUTPUT/UTM.dmg"
-		rm -rf "$RESOURCES"
-	else
+	#if command -v appdmg >/dev/null 2>&1; then
+	#	RESOURCES="/tmp/resources.$$"
+	#	cp -r "$BASEDIR/resources" "$RESOURCES"
+	#	sed -i '' "s/\/tmp\/signed\/UTM.app/\/tmp\/signed.$$\/UTM.app/g" "$RESOURCES/appdmg.json"
+	#	appdmg "$RESOURCES/appdmg.json" "$OUTPUT/UTM.dmg"
+	#	rm -rf "$RESOURCES"
+	#else
 		echo "appdmg not found, falling back to non-customized DMG creation"
 		hdiutil create -fs HFS+ -srcfolder "$SIGNED/UTM.app" -volname "UTM" "$OUTPUT/UTM.dmg"
-	fi
+	#fi
 fi
 rm -rf "$SIGNED"

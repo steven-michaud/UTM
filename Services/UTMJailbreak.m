@@ -205,6 +205,30 @@ bool jb_has_jit_entitlement(void) {
 #if TARGET_OS_OSX
 @import Security;
 
+bool jb_has_restricted_device_entitlement(void) {
+    SecTaskRef task;
+    CFTypeRef value;
+    static bool cached = false;
+    static bool entitled = false;
+
+    if (cached) {
+        return entitled;
+    }
+
+    task = SecTaskCreateFromSelf (kCFAllocatorDefault);
+    if (task == NULL) {
+      return false;
+    }
+    value = SecTaskCopyValueForEntitlement(task, CFSTR("com.apple.private.virtualization"), NULL);
+    CFRelease (task);
+    entitled = value && (CFGetTypeID (value) == CFBooleanGetTypeID ()) && CFBooleanGetValue (value);
+    cached = true;
+    if (value) {
+      CFRelease (value);
+    }
+    return entitled;
+}
+
 bool jb_has_usb_entitlement(void) {
     SecTaskRef task;
     CFTypeRef value;

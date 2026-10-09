@@ -301,6 +301,34 @@ extension UTMAppleConfiguration {
         }
         vzconfig.networkDevices.append(contentsOf: try networks.compactMap({ try $0.vzNetworking(forValidation: forValidation) }))
         vzconfig.serialPorts.append(contentsOf: serials.compactMap({ $0.vzSerial() }))
+        // The VM's kernel captures this port and sends it all "serial mode"
+        // output. To make it more plentiful, and useful, set the "serial=3"
+        // boot-arg in the VM. This output gets redirected to the host app's
+        // (UTM's) own stdout port. However, on macOS 13 and up this serial
+        // port is a "restricted device", which requires the
+        // com.apple.private.virtualization entitlement to access.
+        #if arch(arm64)
+        if #available(macOS 12, *) {
+            var attachKernelLoggingPort = false
+            if jb_has_restricted_device_entitlement() {
+                attachKernelLoggingPort = true
+            } else {
+                let os = ProcessInfo().operatingSystemVersion
+                switch (os.majorVersion, os.minorVersion, os.patchVersion) {
+                case (12, _, _):
+                    attachKernelLoggingPort = true
+                default:
+                    attachKernelLoggingPort = false
+                }
+            }
+            if attachKernelLoggingPort {
+                let attachment = VZFileHandleSerialPortAttachment(fileHandleForReading: FileHandle.standardInput, fileHandleForWriting: FileHandle.standardOutput)
+                let serialConfig = _VZPL011SerialPortConfiguration()
+                serialConfig.attachment = attachment
+                vzconfig.serialPorts.append(serialConfig)
+            }
+        }
+        #endif
         // add remaining devices
         try virtualization.fillVZConfiguration(vzconfig, isMacOSGuest: system.boot.operatingSystem == .macOS)
         #if arch(arm64)

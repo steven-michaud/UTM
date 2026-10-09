@@ -44,6 +44,8 @@ struct UTMAppleConfigurationBoot: Codable {
     
     /// IPSW for installing macOS. Not saved.
     var macRecoveryIpswURL: URL?
+
+    var debugServer: Bool = false
     
     private enum CodingKeys: String, CodingKey {
         case operatingSystem = "OperatingSystem"

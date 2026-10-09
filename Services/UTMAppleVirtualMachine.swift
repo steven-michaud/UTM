@@ -200,6 +200,23 @@ final class UTMAppleVirtualMachine: UTMVirtualMachine {
                     }
                     return
                 }
+                if #available(macOS 12, *), boot.operatingSystem == .macOS {
+                    if let optionsClass = NSClassFromString("_VZVirtualMachineStartOptions") as? NSObject.Type {
+                        let vzoptions = optionsClass.init()
+                        vzoptions.bootMacOSRecovery = options.contains(.bootRecovery)
+                        vzoptions.forceDFU = false
+                        vzoptions.stopInIBootStage1 = false
+                        vzoptions.stopInIBootStage2 = false
+                        apple._start(withOptions: vzoptions) { result in
+                            if let result = result {
+                                continuation.resume(with: .failure(result))
+                            } else {
+                                continuation.resume()
+                            }
+                        }
+                        return
+                    }
+                }
                 #endif
                 apple.start { result in
                     continuation.resume(with: result)
@@ -956,6 +973,7 @@ extension UTMAppleVirtualMachine: VZVirtualMachineDelegate {
                 stopUsbPassthrough()
             }
             closeSerialPorts()
+            config.system.boot.debugServer = false
         }
         try? saveScreenshot()
         state = .stopped
